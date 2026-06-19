@@ -3,6 +3,8 @@ from src.layers.dense import Dense
 from src.layers.activation import ReLU, Sigmoid
 from src.losses.MSE import MSE
 from src.layers.dropout import Dropout
+from src.layers.batchnorm import BatchNorm
+
 
 
 import numpy as np
@@ -17,6 +19,7 @@ y_test = 2*X_test+8
 # model
 model = Model([
     Dense(1, 50),
+    BatchNorm(50),
     ReLU(),
     Dense(50,20),
     ReLU(),

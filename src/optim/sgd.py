@@ -38,3 +38,6 @@ class SGD:
                 if hasattr(layer, "dW"):
                     layer.dW *= scale
                     layer.db *= scale
+                if hasattr(layer, "gamma"):
+                    layer.gamma -= self.lr * layer.dgamma
+                    layer.beta -= self.lr * layer.dbeta

@@ -61,6 +61,11 @@ class Adam:
 
                 idx += 1
 
+            if hasattr(layer, "gamma"):
+                layer.gamma -= self.lr * layer.dgamma
+                layer.beta -= self.lr * layer.dbeta
+
+
     def clip(self, max_norm):
 
         total_norm = 0
