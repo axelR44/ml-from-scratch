@@ -2,12 +2,12 @@ from src.models.sequential import Model
 from src.layers.dense import Dense
 from src.layers.activation import ReLU, Sigmoid
 from src.losses.MSE import MSE
+from src.layers.dropout import Dropout
 
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-# dataset
 X = np.linspace(0,60,2000).reshape(-1, 1)
 y = 2*X+8
 
@@ -25,11 +25,9 @@ model = Model([
     Dense(5, 1),
 ])
 
-# loss
 loss = MSE()
 
-# train
-model.fit(X, y, X_test, y_test, loss, lr=0.001, epochs=500, patience=300, save_path='model1')
+model.fit(X, y, X_test, y_test, loss, lr=0.0001, epochs=500, patience=300, save_path='model1', optimizer_name="Adam", scheduler_name="WCOS")
 plt.plot(np.log(model.val_losses))
 plt.show()
 model2 = model.load('model1')
