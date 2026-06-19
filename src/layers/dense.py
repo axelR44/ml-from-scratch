@@ -2,9 +2,9 @@ import numpy as np
 
 class Dense:
     def __init__(self, input_size, output_size):
-        self.W = np.random.randn(input_size, output_size) * 0.01
+        #initialisation HE
+        self.W = np.random.randn(input_size, output_size) * np.sqrt(2 / input_size)
         self.b = np.zeros((1,output_size))
-
 
 
     def forward(self, X):

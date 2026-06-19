@@ -28,6 +28,10 @@ def clip_gradients(model, max_norm):
                 layer.dW *= scale
                 layer.db *= scale
 
+def accuracy(y_true, logits):
+    preds = np.argmax(logits, axis=1)
+    return np.mean(preds == y_true)
+
 class Model:
     def __init__(self, layers):
         self.layers = layers
@@ -125,6 +129,7 @@ class Model:
             if X_val is not None:
                 y_val_pred = self.forward(X_val, training=False)
                 val_loss = loss_fn.forward(y_val, y_val_pred)
+                val_acc = accuracy(y_val, y_val_pred)
                 self.val_losses.append(val_loss)
                 
                 if val_loss < best_val_loss:
@@ -151,6 +156,7 @@ class Model:
                 pbar.set_postfix({
                         "train": f"{epoch_loss:.3e}",
                         "val": f"{val_loss:.3e}" if X_val is not None else "N/A",
+                        "acc": f"{val_acc:.3f}",
                         "lr": f"{optimizer.lr:.2e}"
                     })
 
@@ -160,7 +166,7 @@ class Model:
             print("plus grande norme de gradient: ", optimizer.biggest_norm)
     
     def predict(self, X):
-        return self.forward(X)
+        return self.forward(X, training = False)
     
     
     def evaluate(self, X, y, loss_fn):
