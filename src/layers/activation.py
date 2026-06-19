@@ -2,7 +2,7 @@ import numpy as np
 
 class ReLU:
     def forward(self, X):
-        self.X = X  # cache pour backward
+        self.X = X 
         return np.maximum(0, X)
 
     def backward(self, dA):
