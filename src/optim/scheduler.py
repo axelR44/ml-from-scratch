@@ -50,7 +50,7 @@ class WarmupCosineLR(LRScheduler):
     def __init__(self, optimizer, total_epochs, eta_min=1e-6):
         super().__init__(optimizer)
         self.total_epochs = total_epochs
-        self.warmup_epochs = total_epochs/10
+        self.warmup_epochs = total_epochs//10
         self.eta_min = eta_min
 
         self.initial_lr = optimizer.lr

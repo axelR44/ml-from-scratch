@@ -35,15 +35,19 @@ def accuracy(y_true, logits):
 class Model:
     def __init__(self, layers):
         self.layers = layers
-        best_weights = None
+        self.loss_fn = None
         self.train_losses = []
         self.val_losses = []
+        self.training = True
+        self.history = None
 
-    def forward(self, X, training=True):
+        self.metrics = []
+
+    def forward(self, X):
         out = X
         for layer in self.layers:
             if "training" in layer.forward.__code__.co_varnames:
-                out = layer.forward(out, training=training)
+                out = layer.forward(out, training=self.training)
             else:
                 out = layer.forward(out)
         return out
@@ -70,11 +74,15 @@ class Model:
         return params
     
 
-    def fit(self, X, y,  X_val=None, y_val=None, loss_fn =None, optimizer_name = None, scheduler_name = None,
+    def fit(self, X, y,  X_val=None, y_val=None, optimizer_name = None, scheduler_name = None,
             lr=0.01, epochs=100, batch_size = 32, patience = 100, lambda_l2=1e-4,
-            use_best_model = True, save_path = None):
-        if loss_fn is None:
-            loss_fn = MSE()
+            use_best_model = True, save_path = None, callbacks=None):
+        self.stop_training = False
+        self.save_path = save_path
+        self.epochs = epochs
+        self.use_best_model = use_best_model
+        if self.loss_fn is None:
+            self.loss_fn = MSE()
             
         if optimizer_name is None or optimizer_name == "SGD":
             optimizer = SGD(self, lr=lr)
@@ -94,86 +102,129 @@ class Model:
             scheduler = WarmupCosineLR(optimizer, epochs)
         else:
             scheduler = None
+
+        callbacks = callbacks or []
+                
+        for cb in callbacks:
+            cb.on_train_begin(self)
+
+
+        self.train()
             
         
         best_val_loss = float("inf")
         patience_counter = 0
         
-        
-        pbar = tqdm(range(epochs), desc="Training")
-        step = max(1, epochs // 100)
 
-        for epoch in pbar:
+        for epoch in range(epochs):
+            logs = {}
             epoch_loss = 0
+
+            for cb in callbacks:
+                cb.on_epoch_begin(self, epoch)
 
             indices = np.random.permutation(len(X))
             X = X[indices]
             y = y[indices]
+            num_batch = 0
+            
+            train_metrics_epoch = {}
 
             for i in range(0, len(X), batch_size):
                 X_batch = X[i:i+batch_size]
                 
                 y_batch = y[i:i+batch_size]
-                y_pred = self.forward(X_batch, training=True)
+                y_pred = self.forward(X_batch)
 
-                train_loss = loss_fn.forward(y_batch, y_pred)
+                train_loss = self.loss_fn.forward(y_batch, y_pred)
                 epoch_loss += train_loss
 
-                grad = loss_fn.backward()
+                grad = self.loss_fn.backward()
                 self.backward(grad, lambda_l2 = lambda_l2)
                 optimizer.step(clip_norm=1)
-            
-            epoch_loss /= (len(X) // batch_size)            
+                num_batch+=1
+                
+                batch_metrics = self.compute_metrics(y_batch, y_pred)
+                
+                for name, value in batch_metrics.items():
+                    if name not in train_metrics_epoch:
+                        train_metrics_epoch[name] = []
+                    train_metrics_epoch[name].append(value)
+
+            for name, values in train_metrics_epoch.items():
+                key = f"train_{name}"
+                logs[key] = np.mean(values)
+                        
+            epoch_loss /= num_batch          
             self.train_losses.append(epoch_loss)
                         
             if X_val is not None:
-                y_val_pred = self.forward(X_val, training=False)
-                val_loss = loss_fn.forward(y_val, y_val_pred)
-                val_acc = accuracy(y_val, y_val_pred)
+                self.eval()
+                y_val_pred = self.forward(X_val)
+                val_loss = self.loss_fn.forward(y_val, y_val_pred)
                 self.val_losses.append(val_loss)
-                
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    best_weights = copy.deepcopy(self.layers)
-                    patience_counter = 0
-                    
-                    if save_path is not None:
-                        self.save(save_path)
 
-                else:
-                    patience_counter += 1
+                metrics = self.compute_metrics(y_val, y_val_pred)
                 
-                if patience_counter >= patience:
-                    print(f"Early stopping at epoch {epoch}")
-                    if use_best_model:
-                        self.layers = best_weights
-                    break
+                for name, value in metrics.items():
+                    logs[name] = value
+
+                self.train()
 
             if scheduler is not None:
                 scheduler.step()
+            
+            logs = logs | {
+                "train_loss": epoch_loss,
+                "val_loss": val_loss,
+                "lr": optimizer.lr
+            }
 
-            if epoch % step == 0:      
-                pbar.set_postfix({
-                        "train": f"{epoch_loss:.3e}",
-                        "val": f"{val_loss:.3e}" if X_val is not None else "N/A",
-                        "acc": f"{val_acc:.3f}",
-                        "lr": f"{optimizer.lr:.2e}"
-                    })
+            for cb in callbacks:
+                cb.on_epoch_end(self, epoch, logs)
+            if self.stop_training:
+                break
 
-        if X_val is not None and best_weights is not None and use_best_model:
-            self.layers = best_weights
-        if hasattr(optimizer, "biggest_norm"):
-            print("plus grande norme de gradient: ", optimizer.biggest_norm)
+
+        for cb in callbacks:
+            cb.on_train_end(self, epoch, logs)
+
+
+    def train(self):
+        self.training = True
+
+    def eval(self):
+        self.training = False
+
     
     def predict(self, X):
-        return self.forward(X, training = False)
+        self.eval()
+        return self.forward(X)
     
     
     def evaluate(self, X, y, loss_fn):
+        self.eval()
         y_pred = self.forward(X)
-        return loss_fn.forward(y, y_pred)
-    
-    
+        loss = loss_fn.forward(y, y_pred)
+        self.train()
+        return loss
+        
+    def compile(self, loss, optimizer_name="Adam", metrics=None, lr=0.001):
+        self.loss_fn = loss
+        self.optimizer_name = optimizer_name
+        self.lr = lr
+        self.metrics = metrics if metrics is not None else []
+
+    def compute_metrics(self, y_true, y_pred):
+        results = {}        
+        for metric in self.metrics:
+            name = metric.__name__
+            results[name] = metric(y_true, y_pred)
+
+
+        return results
+        
+        
     def save(self, path):
         with open(f"models_saved/{path}.pkl", "wb") as f:
             pickle.dump(self, f)
