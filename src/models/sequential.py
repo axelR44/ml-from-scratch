@@ -28,9 +28,6 @@ def clip_gradients(model, max_norm):
                 layer.dW *= scale
                 layer.db *= scale
 
-def accuracy(y_true, logits):
-    preds = np.argmax(logits, axis=1)
-    return np.mean(preds == y_true)
 
 class Model:
     def __init__(self, layers):

@@ -12,6 +12,7 @@ class Dense:
         return X @ self.W + self.b
     
     def backward(self, dZ, lambda_l2=0.0):
+        
         batch_size = self.X.shape[0]
 
         self.dW = (self.X.T @ dZ) / batch_size
