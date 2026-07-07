@@ -3,6 +3,7 @@ from src.layers.dense import Dense
 from src.layers.activation import ReLU, Sigmoid
 from src.layers.conv2d import Conv2D
 from src.layers.flatten import Flatten
+from src.layers.maxpool import MaxPool2D
 from src.losses.cross_entropy import CrossEntropy
 import numpy as np
 from src.utils.mnist_loader import load_mnist
@@ -12,18 +13,24 @@ from src.utils.metrics import accuracy
 
 
 #image of 28*28, we use a padding of 3
-H_out = 28 - 3 + 1
-W_out = 28 - 3 + 1
+
+H_conv = 28 - 3 + 1  # 26
+W_conv = 28 - 3 + 1  # 26
+
+H_pool = H_conv // 2  # 13
+W_pool = W_conv // 2  # 13
+
+
 model = Model([
     Conv2D(1, 8, 3),
     ReLU(),
+    MaxPool2D(),
     Flatten(),
-    Dense(8*H_out*W_out, 64),
+    Dense(8*H_pool*W_pool, 64),
     ReLU(),
     Dense(64, 10)
 ])
-
-model = model.load('model_mnsi')
+model.load('best_model')
 
 X_train, y_train, X_test, y_test = load_mnist()
 

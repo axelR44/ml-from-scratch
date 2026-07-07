@@ -6,6 +6,7 @@ import pickle
 from src.optim.sgd import SGD
 from src.optim.adam import Adam
 from src.optim.scheduler import StepLR, ExponentialLR, CosineAnnealingLR, WarmupCosineLR
+import h5py
 
 
 def clip_gradients(model, max_norm):
@@ -222,14 +223,21 @@ class Model:
         return results
         
         
-    def save(self, path):
-        with open(f"models_saved/{path}.pkl", "wb") as f:
-            pickle.dump(self, f)
 
-    @staticmethod
-    def load(path):
-        with open(f"models_saved/{path}.pkl", "rb") as f:
-            return pickle.load(f)
+    def save(self, path):
+        with h5py.File(f"models_saved/{path}.h5", "w") as f:
+            for i, layer in enumerate(self.layers):
+                if hasattr(layer, "W"):
+                    grp = f.create_group(f"layer_{i}")
+                    grp.create_dataset("W", data=layer.W)
+                    grp.create_dataset("b", data=layer.b)
+
+    def load(self, path):
+        with h5py.File(f"models_saved/{path}.h5", "r") as f:
+            for i, layer in enumerate(self.layers):
+                if hasattr(layer, "W"):
+                    layer.W = f[f"layer_{i}/W"][:]
+                    layer.b = f[f"layer_{i}/b"][:]
 
 
 
