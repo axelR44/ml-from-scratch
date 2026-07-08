@@ -33,13 +33,13 @@ H_pool = H_conv // 2
 W_pool = W_conv // 2
 
 model = Model([
-    Conv2D(1, 8, 3, padding=1, stride=2),
+    Conv2D(8, 3, padding=1, stride=2),
     ReLU(),
     MaxPool2D(),
     Flatten(),
-    Dense(8*H_pool*W_pool, 64),
+    Dense(64),
     ReLU(),
-    Dense(64, 10)
+    Dense(10)
 ])
 
 model.compile(

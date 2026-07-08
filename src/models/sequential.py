@@ -41,6 +41,10 @@ class Model:
 
         self.metrics = []
 
+    def build(self, X):
+        self.forward(X[:1])
+
+
     def forward(self, X):
         out = X
         for layer in self.layers:
@@ -79,6 +83,7 @@ class Model:
         self.save_path = save_path
         self.epochs = epochs
         self.use_best_model = use_best_model
+        self.build(X)
         if self.loss_fn is None:
             self.loss_fn = MSE()
             

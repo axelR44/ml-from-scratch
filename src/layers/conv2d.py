@@ -1,17 +1,25 @@
 import numpy as np
 
 class Conv2D:
-    def __init__(self, in_channels, out_channels, kernel_size, padding = 0, stride = 1):
-        self.in_channels = in_channels
+    def __init__(self, out_channels, kernel_size, padding = 0, stride = 1):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
 
-        # poids : (out_channels, in_channels, k, k)
-        self.W = np.random.randn(out_channels, in_channels, kernel_size, kernel_size) * 0.01
-        self.b = np.zeros((out_channels, 1))
 
         self.padding = padding
         self.stride = stride
+
+        self.initialized = False
+
+
+    def build(self, in_channels):
+
+        fan_in = (in_channels* self.kernel_size* self.kernel_size)
+
+        self.W = (np.random.randn(self.out_channels, in_channels, self.kernel_size, self.kernel_size)* np.sqrt(2 / fan_in))
+        self.b = np.zeros((self.out_channels, 1))
+
+        self.initialized = True
 
     def naive_forward(self, X):
         """
@@ -40,6 +48,10 @@ class Conv2D:
         
     def forward(self, X):
         self.X = X
+        
+        if not self.initialized:
+                self.build(X.shape[1])
+
         if self.padding > 0:
             X = np.pad(X,(
                     (0, 0),
