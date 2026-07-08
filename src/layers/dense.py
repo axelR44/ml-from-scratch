@@ -24,8 +24,8 @@ class Dense:
         
         batch_size = self.X.shape[0]
 
-        self.dW = (self.X.T @ dZ) / batch_size
-        self.db = np.sum(dZ, axis=0, keepdims=True) / batch_size
+        self.dW = (self.X.T @ dZ)
+        self.db = np.sum(dZ, axis=0, keepdims=True)
 
         if lambda_l2 > 0:
             self.dW += lambda_l2 * self.W
@@ -37,7 +37,3 @@ class Dense:
                 {"param": self.W, "grad": self.dW},
                 {"param": self.b, "grad": self.db}
             ]
-
-    
-    
-
