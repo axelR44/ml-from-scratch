@@ -1,9 +1,4 @@
 from src.models.sequential import Model
-from src.layers.dense import Dense
-from src.layers.activation import ReLU, Sigmoid
-from src.layers.conv2d import Conv2D
-from src.layers.flatten import Flatten
-from src.layers.maxpool import MaxPool2D
 from src.losses.cross_entropy import CrossEntropy
 import numpy as np
 from src.utils.mnist_loader import load_mnist

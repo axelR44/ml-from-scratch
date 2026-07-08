@@ -15,7 +15,7 @@ from src.layers.dense import Dense
 from src.layers.conv2d import Conv2D
 from src.layers.activation import ReLU, Sigmoid
 from src.layers.flatten import Flatten
-from src.layers.maxpool import MaxPool2D
+from src.layers.pooling import MaxPool2D,AvgPool2D
 from src.layers.batchnorm import BatchNorm
 from src.layers.batchnorm2d import BatchNorm2D
 

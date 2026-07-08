@@ -4,7 +4,7 @@ from src.layers.dense import Dense
 from src.layers.conv2d import Conv2D
 from src.layers.flatten import Flatten
 from src.layers.activation import ReLU, Sigmoid
-from src.layers.maxpool import MaxPool2D
+from src.layers.pooling import MaxPool2D,AvgPool2D
 from src.layers.batchnorm import BatchNorm
 from src.layers.batchnorm2d import BatchNorm2D
 
@@ -217,13 +217,13 @@ def run_all_tests_gradient():
 
     max_error = np.max(all_errors)
 
-    print("Résumé")
+    print("\nRésumé")
     print(f"Erreur max globale : {max_error:.3e}")
 
     
     assert max_error < 1e-5, (f"Erreur globale trop élevée : {max_error:.3e}")
 
-    print("Certains gradients semblent suspects")
+    print("les gradients semblent ok\n")
 
 
 if __name__ == "__main__":

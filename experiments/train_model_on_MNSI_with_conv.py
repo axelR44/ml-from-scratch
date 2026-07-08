@@ -7,7 +7,7 @@ from src.layers.dropout import Dropout
 from src.layers.batchnorm import BatchNorm
 from src.losses.cross_entropy import CrossEntropy
 import numpy as np
-from src.layers.maxpool import MaxPool2D
+from src.layers.pooling import MaxPool2D,AvgPool2D
 
 from src.utils.mnist_loader import load_mnist
 import matplotlib.pyplot as plt
@@ -35,7 +35,7 @@ model.compile(
     metrics=[accuracy]
 )
 model.fit(X_train,y_train, X_test, y_test, lr=0.001,
-        epochs=1,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
+        epochs=10,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
         callbacks=[EarlyStopping(patience=20),
                     ModelCheckpoint("best_model"),
                     ReduceLROnPlateau(factor=0.5,patience=10),
