@@ -7,6 +7,10 @@ class MaxPool2D:
 
 
     def naive_forward(self, X):
+        """
+        Deprecated.
+        use forward() instead.
+        """
 
         self.X = X
         batch_size, C, H, W = X.shape
@@ -68,6 +72,10 @@ class MaxPool2D:
         return out
 
     def naive_backward(self, dZ):
+        """
+        Deprecated.
+        use backward() instead.
+        """
         dX = np.zeros_like(self.X)
 
         H_out = dZ.shape[2]

@@ -19,16 +19,21 @@ X_train, y_train, X_test, y_test = load_mnist()
 #image shape
 X_train = X_train.reshape(-1, 1, 28, 28)
 X_test = X_test.reshape(-1, 1, 28, 28)
-#image of 28*28, we use a padding of 3
 
-H_conv = 28 - 3 + 1  # 26
-W_conv = 28 - 3 + 1  # 26
+#image of 28*28, we use a padding of 1
+padding = 1
+stride = 2
+kernel_size = 3
 
-H_pool = H_conv // 2  # 13
-W_pool = W_conv // 2  # 13
+H_conv = (28 + 2*padding - kernel_size)//stride + 1
+W_conv = (28 + 2*padding - kernel_size)//stride + 1
+
+
+H_pool = H_conv // 2
+W_pool = W_conv // 2
 
 model = Model([
-    Conv2D(1, 8, 3),
+    Conv2D(1, 8, 3, padding=1, stride=2),
     ReLU(),
     MaxPool2D(),
     Flatten(),

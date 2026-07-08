@@ -1,7 +1,7 @@
 import numpy as np
 
 class Conv2D:
-    def __init__(self, in_channels, out_channels, kernel_size):
+    def __init__(self, in_channels, out_channels, kernel_size, padding = 0, stride = 1):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -10,7 +10,14 @@ class Conv2D:
         self.W = np.random.randn(out_channels, in_channels, kernel_size, kernel_size) * 0.01
         self.b = np.zeros((out_channels, 1))
 
+        self.padding = padding
+        self.stride = stride
+
     def naive_forward(self, X):
+        """
+        Deprecated.
+        use forward() instead.
+        """
         self.X = X
 
         batch_size, _, H, W = X.shape
@@ -33,12 +40,19 @@ class Conv2D:
         
     def forward(self, X):
         self.X = X
-
+        if self.padding > 0:
+            X = np.pad(X,(
+                    (0, 0),
+                    (0, 0),
+                    (self.padding, self.padding),
+                    (self.padding, self.padding)
+                ),mode="constant")
+        self.X_padded = X
         batch_size, _, H, W = X.shape
         k = self.kernel_size
 
-        H_out = H - k + 1
-        W_out = W - k + 1
+        H_out = (H - k)//self.stride + 1
+        W_out = (W - k)//self.stride + 1
 
         cols = self._im2col(X)
 
@@ -59,15 +73,19 @@ class Conv2D:
     def _im2col(self, X):
         batch_size, C, H, W = X.shape
         k = self.kernel_size
-
-        H_out = H - k + 1
-        W_out = W - k + 1
+                
+        H_out = (H - k)//self.stride + 1
+        W_out = (W - k)//self.stride + 1
 
         cols = []
 
         for i in range(H_out):
             for j in range(W_out):
-                patch = X[:, :, i:i+k, j:j+k]
+                
+                row = i * self.stride
+                col = j * self.stride
+
+                patch = X[:, :, row:row+k, col:col+k]
 
                 # (batch, C*k*k)
                 patch = patch.reshape(batch_size, -1)
@@ -85,8 +103,10 @@ class Conv2D:
 
         k = self.kernel_size
 
-        H_out = H - k + 1
-        W_out = W - k + 1
+        
+        H_out = (H - k)//self.stride + 1
+        W_out = (W - k)//self.stride + 1
+
 
         dX = np.zeros(X_shape)
 
@@ -94,13 +114,22 @@ class Conv2D:
 
         for i in range(H_out):
             for j in range(W_out):
+                
+                row = i * self.stride
+                col = j * self.stride
+
                 patch = cols[:, patch_idx]
                 patch = patch.reshape(batch_size, C,k, k)
-                dX[:, :, i:i+k, j:j+k] += patch
+                dX[:, :, row:row+k,col:col+k] += patch
                 patch_idx += 1
         return dX
         
     def naive_backward(self, dZ, lambda_l2=0.0):
+        """
+        Deprecated.
+        use backward() instead.
+        """
+
         batch_size, _, H, W = self.X.shape
         k = self.kernel_size
 
@@ -130,11 +159,14 @@ class Conv2D:
     
 
     def backward(self, dZ, lambda_l2=0.0):
-        batch_size, _, H, W = self.X.shape
+        #on reprend la shape du X qui avait été paddé
+        batch_size, C, H, W = self.X_padded.shape
         k = self.kernel_size
 
-        H_out = H - k + 1
-        W_out = W - k + 1
+                
+        H_out = (H - k)//self.stride + 1
+        W_out = (W - k)//self.stride + 1
+
         nb_patches = H_out * W_out
 
         self.db = np.sum(dZ, axis=(0, 2, 3), keepdims=False).reshape(self.out_channels, 1)
@@ -153,8 +185,14 @@ class Conv2D:
         W_col = self.W.reshape(self.out_channels,-1)
 
         dCols = np.matmul(dZ_col, W_col)
-        dX = self._col2im(dCols, self.X.shape)
-
+        dX = self._col2im(dCols, self.X_padded.shape)
+        if self.padding > 0:
+            dX = dX[
+                :,
+                :,
+                self.padding:-self.padding,
+                self.padding:-self.padding
+            ]
 
         if lambda_l2 > 0:
             self.dW += lambda_l2 * self.W
