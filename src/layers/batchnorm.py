@@ -1,22 +1,27 @@
 import numpy as np
 
 class BatchNorm:
-    def __init__(self, input_dim, eps=1e-5, momentum=0.9):
+    def __init__(self, eps=1e-5, momentum=0.9):
         self.eps = eps
         self.momentum = momentum
 
-        # paramètres appris
-        self.gamma = np.ones((1, input_dim))
-        self.beta = np.zeros((1, input_dim))
+        self.initialized = False
 
-        # stats pour inference
-        self.running_mean = np.zeros((1, input_dim))
-        self.running_var = np.ones((1, input_dim))
+    def build(self, in_features):
+        self.gamma = np.ones((1, in_features))
+        self.beta = np.zeros((1, in_features))
+
+        self.running_mean = np.zeros((1, in_features))
+        self.running_var = np.ones((1, in_features))
+
+        self.initialized = True
 
     def forward(self, X, training=True):
-        if training:
-            self.X = X
+        if not self.initialized:
+            self.build(X.shape[1])
+        self.X = X
 
+        if training:
             self.mean = np.mean(X, axis=0, keepdims=True)
             self.var = np.var(X, axis=0, keepdims=True)
 

@@ -20,22 +20,10 @@ X_train, y_train, X_test, y_test = load_mnist()
 X_train = X_train.reshape(-1, 1, 28, 28)
 X_test = X_test.reshape(-1, 1, 28, 28)
 
-#image of 28*28, we use a padding of 1
-padding = 1
-stride = 2
-kernel_size = 3
-
-H_conv = (28 + 2*padding - kernel_size)//stride + 1
-W_conv = (28 + 2*padding - kernel_size)//stride + 1
-
-
-H_pool = H_conv // 2
-W_pool = W_conv // 2
 
 model = Model([
-    Conv2D(8, 3, padding=1, stride=2),
+    Conv2D(8, 3, padding=1, stride=1),
     ReLU(),
-    MaxPool2D(),
     Flatten(),
     Dense(64),
     ReLU(),
@@ -47,7 +35,7 @@ model.compile(
     metrics=[accuracy]
 )
 model.fit(X_train,y_train, X_test, y_test, lr=0.001,
-        epochs=10,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
+        epochs=1,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
         callbacks=[EarlyStopping(patience=20),
                     ModelCheckpoint("best_model"),
                     ReduceLROnPlateau(factor=0.5,patience=10),

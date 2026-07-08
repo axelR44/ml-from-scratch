@@ -12,25 +12,7 @@ import matplotlib.pyplot as plt
 from src.utils.metrics import accuracy
 
 
-#image of 28*28, we use a padding of 3
-
-H_conv = 28 - 3 + 1  # 26
-W_conv = 28 - 3 + 1  # 26
-
-H_pool = H_conv // 2  # 13
-W_pool = W_conv // 2  # 13
-
-
-model = Model([
-    Conv2D(1, 8, 3),
-    ReLU(),
-    MaxPool2D(),
-    Flatten(),
-    Dense(8*H_pool*W_pool, 64),
-    ReLU(),
-    Dense(64, 10)
-])
-model.load('best_model')
+model = Model.load('best_model')
 
 X_train, y_train, X_test, y_test = load_mnist()
 
