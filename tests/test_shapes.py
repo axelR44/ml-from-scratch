@@ -5,7 +5,7 @@ from src.layers.conv2d import Conv2D
 from src.layers.dense import Dense
 from src.layers.activation import ReLU, Sigmoid
 from src.layers.flatten import Flatten
-from src.layers.pooling import MaxPool2D,AvgPool2D
+from src.layers.pooling import MaxPool2D,AvgPool2D, GlobalAveragePooling2D
 from src.layers.batchnorm import BatchNorm
 from src.layers.batchnorm2d import BatchNorm2D
 
@@ -114,6 +114,26 @@ def test_batchnorm_2d():
 
     check_shape("BatchNorm2D backward", dX, X.shape)
 
+def test_global_average_pooling2d():
+    X = np.random.randn(4, 16, 7, 7)
+
+    gap = GlobalAveragePooling2D()
+
+    out = gap.forward(X)
+
+    assert out.shape == (4, 16), (
+        f"attendu {(4, 16)}, obtenu {out.shape}"
+    )
+
+    dZ = np.random.randn(*out.shape)
+    dX = gap.backward(dZ)
+
+    assert dX.shape == X.shape, (
+        f"attendu {X.shape}, obtenu {dX.shape}"
+    )
+
+    print("GlobalAveragePooling2D OK")
+
 
 def test_full_cnn_forward_shapes():
     print("\n=== test_full_cnn_forward_shapes ===")
@@ -146,6 +166,30 @@ def test_full_cnn_forward_shapes():
         out = layer.forward(out)
 
         check_shape(layer.__class__.__name__, out, expected_shape)
+
+def test_avgpool2d():
+    print("\n=== test_avgpool2d ===")
+
+    X = np.random.randn(2, 8, 14, 14)
+
+    pool = AvgPool2D(pool_size=2)
+
+    out = pool.forward(X)
+
+    check_shape(
+        "AvgPool2D",
+        out,
+        (2, 8, 7, 7)
+    )
+
+    dY = np.random.randn(*out.shape)
+    dX = pool.backward(dY)
+
+    check_shape(
+        "AvgPool2D backward",
+        dX,
+        X.shape
+    )
 
 
 def test_full_cnn_with_batchnorm2d():
@@ -197,6 +241,8 @@ def run_all_shape_tests():
     test_batchnorm_2d()
     test_full_cnn_forward_shapes()
     test_full_cnn_with_batchnorm2d()
+    test_global_average_pooling2d()
+    test_avgpool2d()
 
     print("\nTous les tests de shapes sont passés")
 

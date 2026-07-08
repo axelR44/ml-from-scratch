@@ -87,3 +87,13 @@ class MaxPool2D(Pool2DBase):
         dPatches = dPatches_flat.reshape(batch_size, C, H_out, W_out, self.pool_size, self.pool_size)
         dX = self._scatter_patches_to_input(dPatches)
         return dX
+    
+
+class GlobalAveragePooling2D:
+    def forward(self, X):
+        self.input_shape = X.shape
+        return np.mean(X, axis=(2, 3))
+
+    def backward(self, dZ):
+        batch_size, C, H, W = self.input_shape
+        return np.ones(self.input_shape) * (dZ[:, :, None, None] / (H * W))

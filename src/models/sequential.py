@@ -13,9 +13,9 @@ from src.layers.dropout import Dropout
 
 from src.layers.dense import Dense
 from src.layers.conv2d import Conv2D
-from src.layers.activation import ReLU, Sigmoid
+from src.layers.activation import ReLU, Sigmoid, LeakyReLU
 from src.layers.flatten import Flatten
-from src.layers.pooling import MaxPool2D,AvgPool2D
+from src.layers.pooling import MaxPool2D,AvgPool2D, GlobalAveragePooling2D
 from src.layers.batchnorm import BatchNorm
 from src.layers.batchnorm2d import BatchNorm2D
 
@@ -121,13 +121,10 @@ class Model:
         for cb in callbacks:
             cb.on_train_begin(self)
 
-
         self.train()
-            
-        
+    
         best_val_loss = float("inf")
         patience_counter = 0
-        
 
         for epoch in range(epochs):
             logs = {}
@@ -197,8 +194,6 @@ class Model:
                 cb.on_epoch_end(self, epoch, logs)
             if self.stop_training:
                 break
-
-
         for cb in callbacks:
             cb.on_train_end(self, epoch, logs)
 
@@ -248,30 +243,34 @@ class Model:
                 # type de layer
                 layer_type = layer.__class__.__name__
                 grp.attrs["type"] = layer_type
-
+                if layer_type == "LeakyReLU":
+                    grp.attrs["alpha"] = layer.alpha
                 if layer_type == "Dense":
                     grp.attrs["output_size"] = layer.output_size
-
                 elif layer_type == "Conv2D":
                     grp.attrs["out_channels"] = layer.out_channels
                     grp.attrs["kernel_size"] = layer.kernel_size
                     grp.attrs["padding"] = layer.padding
                     grp.attrs["stride"] = layer.stride
-
                 elif layer_type == "MaxPool2D":
                     grp.attrs["pool_size"] = layer.pool_size
-
+                    grp.attrs["stride"] = layer.stride
+                    grp.attrs["padding"] = layer.padding
+                elif layer_type == "AvgPool2D":
+                    grp.attrs["pool_size"] = layer.pool_size
+                    grp.attrs["stride"] = layer.stride
+                    grp.attrs["padding"] = layer.padding
+                elif layer_type == "MaxPool2D":
+                    grp.attrs["pool_size"] = layer.pool_size
                 elif layer_type in ["BatchNorm", "BatchNorm2D"]:
                     grp.attrs["eps"] = layer.eps
                     grp.attrs["momentum"] = layer.momentum
-
                 elif layer_type == "Dropout":
                     grp.attrs["p"] = layer.p
 
                 if hasattr(layer, "W"):
                     grp.create_dataset("W", data=layer.W)
                     grp.create_dataset("b", data=layer.b)
-
                 if hasattr(layer, "gamma"):
                     grp.create_dataset("gamma", data=layer.gamma)
                     grp.create_dataset("beta", data=layer.beta)
@@ -280,21 +279,16 @@ class Model:
 
     @staticmethod
     def load(path):
-
         layers = []
-
         with h5py.File(f"models_saved/{path}.h5", "r") as f:
-
             # on garde l’ordre layer_0, layer_1, ...
             layer_keys = sorted(f.keys(), key=lambda x: int(x.split("_")[1]))
 
             for key in layer_keys:
                 grp = f[key]
                 layer_type = grp.attrs["type"]
-
                 if layer_type == "Dense":
                     layer = Dense(output_size=int(grp.attrs["output_size"]))
-
                 elif layer_type == "Conv2D":
                     layer = Conv2D(
                         out_channels=int(grp.attrs["out_channels"]),
@@ -302,32 +296,29 @@ class Model:
                         padding=int(grp.attrs["padding"]),
                         stride=int(grp.attrs["stride"])
                     )
-
                 elif layer_type == "ReLU":
                     layer = ReLU()
-
+                elif layer_type == "LeakyReLU":
+                    layer = LeakyReLU()
                 elif layer_type == "Sigmoid":
                     layer = Sigmoid()
-
                 elif layer_type == "Flatten":
                     layer = Flatten()
-
                 elif layer_type == "MaxPool2D":
-                    layer = MaxPool2D(
-                        pool_size=int(grp.attrs["pool_size"])
-                    )
-
+                    layer = MaxPool2D(pool_size=int(grp.attrs["pool_size"]), 
+                                      stride=int(grp.attrs["stride"]), 
+                                      padding=int(grp.attrs["padding"]))
+                elif layer_type == "GlobalAveragePooling2D":
+                    layer = GlobalAveragePooling2D()
+                elif layer_type == "AvgPool2D":
+                    layer = AvgPool2D(pool_size=int(grp.attrs["pool_size"]), 
+                                      stride=int(grp.attrs["stride"]), 
+                                      padding=int(grp.attrs["padding"]))
                 elif layer_type == "BatchNorm":
-                    layer = BatchNorm(
-                        eps=float(grp.attrs["eps"]),
-                        momentum=float(grp.attrs["momentum"])
-                    )
+                    layer = BatchNorm(eps=float(grp.attrs["eps"]), momentum=float(grp.attrs["momentum"]))
 
                 elif layer_type == "BatchNorm2D":
-                    layer = BatchNorm2D(
-                        eps=float(grp.attrs["eps"]),
-                        momentum=float(grp.attrs["momentum"])
-                    )
+                    layer = BatchNorm2D(eps=float(grp.attrs["eps"]), momentum=float(grp.attrs["momentum"]))
                 elif layer_type == "Dropout":
                     layer = Dropout(p = grp.attrs["p"] )
                 else:
@@ -337,16 +328,13 @@ class Model:
                     layer.W = grp["W"][:]
                     layer.b = grp["b"][:]
                     layer.initialized = True
-
                 if "gamma" in grp:
                     layer.gamma = grp["gamma"][:]
                     layer.beta = grp["beta"][:]
                     layer.running_mean = grp["running_mean"][:]
                     layer.running_var = grp["running_var"][:]
                     layer.initialized = True
-
                 layers.append(layer)
-
         return Model(layers)
 
 

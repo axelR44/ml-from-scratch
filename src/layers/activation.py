@@ -16,3 +16,14 @@ class Sigmoid:
 
     def backward(self, dA):
         return dA * self.X * (1 - self.X)
+    
+class LeakyReLU:
+    def __init__(self, alpha = 0.01):
+        self.alpha = alpha
+    def forward(self, X):
+        self.X = X
+        return np.where(X > 0, X, self.alpha * X)
+    
+    def backward(self, dY):
+            grad = np.where(self.X > 0, 1.0, self.alpha)
+            return dY * grad

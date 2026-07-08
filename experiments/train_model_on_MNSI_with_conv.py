@@ -1,13 +1,13 @@
 from src.models.sequential import Model
 from src.layers.dense import Dense
-from src.layers.activation import ReLU, Sigmoid
+from src.layers.activation import ReLU, Sigmoid, LeakyReLU
 from src.layers.conv2d import Conv2D
 from src.layers.flatten import Flatten
 from src.layers.dropout import Dropout
 from src.layers.batchnorm import BatchNorm
 from src.losses.cross_entropy import CrossEntropy
 import numpy as np
-from src.layers.pooling import MaxPool2D,AvgPool2D
+from src.layers.pooling import MaxPool2D,AvgPool2D, GlobalAveragePooling2D
 
 from src.utils.mnist_loader import load_mnist
 import matplotlib.pyplot as plt
@@ -20,13 +20,13 @@ X_train, y_train, X_test, y_test = load_mnist()
 X_train = X_train.reshape(-1, 1, 28, 28)
 X_test = X_test.reshape(-1, 1, 28, 28)
 
-
 model = Model([
-    Conv2D(8, 3, padding=1, stride=1),
-    ReLU(),
-    Flatten(),
-    Dense(64),
-    ReLU(),
+    Conv2D(32, 3, padding=1, stride=1),
+    LeakyReLU(),
+    GlobalAveragePooling2D(),
+    Dense(20),
+    LeakyReLU(),
+    
     Dense(10)
 ])
 
@@ -35,7 +35,7 @@ model.compile(
     metrics=[accuracy]
 )
 model.fit(X_train,y_train, X_test, y_test, lr=0.001,
-        epochs=10,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
+        epochs=5,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
         callbacks=[EarlyStopping(patience=20),
                     ModelCheckpoint("best_model"),
                     ReduceLROnPlateau(factor=0.5,patience=10),
