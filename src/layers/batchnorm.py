@@ -51,3 +51,9 @@ class BatchNorm:
         self.dbeta = np.sum(dY, axis=0, keepdims=True)
 
         return dX
+    
+    def count_params(self):
+        if not self.initialized:
+            return 0
+
+        return self.gamma.size + self.beta.size

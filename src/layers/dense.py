@@ -45,3 +45,9 @@ class Dense:
                 {"param": self.W, "grad": self.dW},
                 {"param": self.b, "grad": self.db}
             ]
+
+    def count_params(self):
+        if not self.initialized:
+            return 0
+
+        return self.W.size + self.b.size

@@ -347,6 +347,42 @@ class Model:
                     layer.initialized = True
                 layers.append(layer)
         return Model(layers)
+    
+    def summary(self, input_shape):
+        X = np.zeros((1, *input_shape))
+
+        total_params = 0
+
+        print(
+            f"{'#':<3}"
+            f"{'Layer':<25}"
+            f"{'Output Shape':<20}"
+            f"{'Params':<10}"
+        )
+        print("-" * 60)
+
+        out = X
+
+        for i, layer in enumerate(self.layers):
+
+            if "training" in layer.forward.__code__.co_varnames:
+                out = layer.forward(out, training=False)
+            else:
+                out = layer.forward(out)
+
+            params = (layer.count_params() if hasattr(layer, "count_params") else 0)
+
+            total_params += params
+
+            print(
+                f"{i:<3}"
+                f"{layer.__class__.__name__:<25}"
+                f"{str(out.shape):<20}"
+                f"{params:<10}"
+            )
+
+        print("-" * 60)
+        print(f"Total params : {total_params:,}")
 
 
 

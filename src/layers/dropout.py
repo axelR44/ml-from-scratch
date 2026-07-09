@@ -21,3 +21,6 @@ class Dropout:
 
     def backward(self, dA):
         return dA * self.mask
+    
+    def count_params(self):
+        return 0

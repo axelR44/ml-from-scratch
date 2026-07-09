@@ -5,3 +5,6 @@ class Flatten:
 
     def backward(self, grad):
         return grad.reshape(self.input_shape)
+
+    def count_params(self):
+        return 0

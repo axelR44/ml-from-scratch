@@ -51,6 +51,9 @@ class Pool2DBase:
 
         return dX_padded
     
+    def count_params(self):
+        return 0
+        
 class AvgPool2D(Pool2DBase):
     def forward(self, X):
         self.X_shape = X.shape

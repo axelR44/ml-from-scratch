@@ -217,3 +217,9 @@ class Conv2D:
             self.dW += lambda_l2 * self.W
 
         return dX
+    
+    def count_params(self):
+        if not self.initialized:
+            return 0
+
+        return self.W.size + self.b.size

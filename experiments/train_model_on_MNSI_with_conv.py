@@ -30,6 +30,7 @@ model = Model([
     Dense(10)
 ])
 
+model.summary((1, 28, 28))
 model.compile(
     loss=CrossEntropy(),
     metrics=[accuracy]
