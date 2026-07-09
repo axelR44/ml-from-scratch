@@ -108,7 +108,7 @@ def check_parameter_gradient(
         name,
         eps=1e-5,
         n_checks=10,
-        tolerance=1e-5
+        tolerance=1e-5,
     ):
     """
     Vérifie dL/dParam.
@@ -119,7 +119,8 @@ def check_parameter_gradient(
     """
 
     X = X.astype(np.float64)
-
+    param = getattr(layer, param_name)
+    setattr(layer, param_name, param.astype(np.float64))
     Y = forward_layer(layer, X, training=True)
     dY = np.random.randn(*Y.shape)
 

@@ -5,6 +5,8 @@ from src.layers.conv2d import Conv2D
 from src.layers.flatten import Flatten
 from src.layers.dropout import Dropout
 from src.layers.batchnorm import BatchNorm
+from src.layers.batchnorm2d import BatchNorm2D
+
 from src.losses.cross_entropy import CrossEntropy
 import numpy as np
 from src.layers.pooling import MaxPool2D,AvgPool2D, GlobalAveragePooling2D
@@ -13,20 +15,17 @@ from src.utils.mnist_loader import load_mnist
 import matplotlib.pyplot as plt
 from src.callback import *
 from src.utils.metrics import accuracy
-
+import numpy as np
+import numpy as np
 X_train, y_train, X_test, y_test = load_mnist()
-
 #image shape
 X_train = X_train.reshape(-1, 1, 28, 28)
 X_test = X_test.reshape(-1, 1, 28, 28)
-
 model = Model([
-    Conv2D(32, 3, padding=1, stride=1),
+    Conv2D(32, 3, padding=1),
+    BatchNorm2D(),
     LeakyReLU(),
     GlobalAveragePooling2D(),
-    Dense(20),
-    LeakyReLU(),
-    
     Dense(10)
 ])
 
@@ -58,11 +57,7 @@ wrong = np.where(preds != y_test)[0]
     plt.title(f"Pred: {preds[idx]} / True: {y_test[idx]}")
     plt.show()"""
 
-from src.analysis.analysis import (
-    plot_history,
-    confusion_matrix_from_logits,
-    plot_confusion_matrix
-)
+from src.analysis.analysis import *
 
 # après entraînement
 plot_history(model.history, save_path="analysis/data/loss.png", show=False)
@@ -85,3 +80,11 @@ plot_confusion_matrix(
     save_path="analysis/data/confusion_matrix_normalized.png",
     show=False
 )
+
+plot_misclassified(X_test, y_test, y_pred, 10, show=False)
+
+plot_conv_filters(model.layers[0], show=False)
+
+feature_maps = model.get_feature_maps(X_test[:1], layer_idx=0)
+
+plot_feature_maps(feature_maps, show=False)

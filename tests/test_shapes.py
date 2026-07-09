@@ -226,6 +226,64 @@ def test_full_cnn_with_batchnorm2d():
             out = layer.forward(out)
         check_shape(layer.__class__.__name__, out, expected_shape)
 
+def test_gradients_conv():
+    
+    rng = np.random.default_rng(0)
+
+    conv = Conv2D(out_channels=4, kernel_size=3, padding=0, stride=1)
+    conv.set_rng(rng)
+
+    # Cas critique : C > 1 (RGB par ex.)
+    X = rng.normal(size=(2, 3, 8, 8))  # batch=2, C=3, H=W=8
+
+    conv.build(in_channels=3)  # force l'init avant, pour utiliser les MÊMES poids
+
+    out_naive = conv.naive_forward(X.copy())
+    out_vectorized = conv.forward(X.copy())
+
+    print("Shapes:", out_naive.shape, out_vectorized.shape)
+    print("Max diff:", np.abs(out_naive - out_vectorized).max())
+    
+    if  np.allclose(out_naive, out_vectorized, atol=1e-5) == False:
+        raise AssertionError(f"problème lors du passage im2col de la convolution")
+
+
+    # --- Forward avec la version im2col corrigée pour peupler self.cols / self.X_padded ---
+    out = out_vectorized
+    H_out, W_out = out.shape[2], out.shape[3]
+
+    dZ = rng.normal(size=(2, conv.out_channels, H_out, W_out))
+
+    # --- backward vectorisé ---
+    # on sauvegarde W car naive_backward va aussi lire self.W (identique, mais on isole dW/db proprement)
+    dX_vec = conv.backward(dZ.copy())
+    dW_vec = conv.dW.copy()
+    db_vec = conv.db.copy()
+
+    # --- naive_backward, utilise self.X qui doit être remis à la valeur d'origine (pas paddé) ---
+    conv.X = X.copy()  # naive_backward lit self.X, pas self.X_padded
+    dX_naive = conv.naive_backward(dZ.copy())
+    dW_naive = conv.dW.copy()
+    db_naive = conv.db.copy()
+
+    max_diff_dx = np.abs(dX_vec - dX_naive).max()
+    assert np.allclose(dX_vec, dX_naive, atol=1e-4), (
+        f"dX mismatch : max diff = {max_diff_dx:.3e}"
+    )
+
+    max_diff_dw = np.abs(dW_vec - dW_naive).max()
+    assert np.allclose(dW_vec, dW_naive, atol=1e-4), (
+        f"dW mismatch : max diff = {max_diff_dw:.3e}"
+    )
+
+    max_diff_db = np.abs(db_vec - db_naive).max()
+    assert np.allclose(db_vec, db_naive, atol=1e-4), (
+        f"db mismatch : max diff = {max_diff_db:.3e}"
+    )
+        
+
+
+
 
 def run_all_shape_tests():
     test_conv2d_same_stride1()
@@ -239,6 +297,7 @@ def run_all_shape_tests():
     test_full_cnn_with_batchnorm2d()
     test_global_average_pooling2d()
     test_avgpool2d()
+    test_gradients_conv()
 
     print("\nTous les tests de shapes sont passés")
 

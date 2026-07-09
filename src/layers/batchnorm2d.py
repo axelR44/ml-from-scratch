@@ -60,4 +60,4 @@ class BatchNorm2D:
         if not self.initialized:
             return 0
 
-        return self.gamma.size + self.beta.si
+        return self.gamma.size + self.beta.size

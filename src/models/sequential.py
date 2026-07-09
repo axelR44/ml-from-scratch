@@ -384,6 +384,23 @@ class Model:
         print("-" * 60)
         print(f"Total params : {total_params:,}")
 
+    def get_feature_maps(self, X, layer_idx):
+        out = X
+
+        for i, layer in enumerate(self.layers):
+
+            if hasattr(layer, "forward"):
+                if "training" in layer.forward.__code__.co_varnames:
+                    out = layer.forward(out, training=False)
+                else:
+                    out = layer.forward(out)
+
+            if i == layer_idx:
+                return out
+
+        raise ValueError(f"layer_idx={layer_idx} inexistant")
+
+
 
 
 

@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 
 class Conv2D:
     def __init__(self, out_channels, kernel_size, padding = 0, stride = 1):
@@ -11,6 +12,7 @@ class Conv2D:
 
         self.initialized = False
         self.rng = None
+        self._col2im_cache = {}
 
 
     def set_rng(self, rng):
@@ -23,8 +25,8 @@ class Conv2D:
 
         fan_in = (in_channels* self.kernel_size* self.kernel_size)
 
-        self.W = (self.rng.normal(size = (self.out_channels, in_channels, self.kernel_size, self.kernel_size))* np.sqrt(2 / fan_in))
-        self.b = np.zeros((self.out_channels, 1))
+        self.W = (self.rng.normal(size = (self.out_channels, in_channels, self.kernel_size, self.kernel_size))* np.sqrt(2 / fan_in)).astype(np.float32)
+        self.b = np.zeros((self.out_channels, 1)).astype(np.float32)
 
         self.initialized = True
 
@@ -88,16 +90,16 @@ class Conv2D:
         # (batch, out_channels, H_out, W_out)
         out = out.reshape(batch_size, H_out, W_out, self.out_channels).transpose(0, 3, 1, 2)
         return out
-    
     def _im2col(self, X):
         batch_size, C, H, W = X.shape
         k = self.kernel_size
-                
         H_out = (H - k)//self.stride + 1
         W_out = (W - k)//self.stride + 1
-
-        cols = []
-
+        #équivalent à une double boucle for sur H_out et W_out
+        patches = sliding_window_view(X, window_shape=(k, k), axis=(2, 3))
+        patches = patches[:, :, ::self.stride, ::self.stride]  # (N, C, H_out, W_out, k, k)
+        patches = patches.transpose(0, 2, 3, 1, 4, 5)          # (N, H_out, W_out, C, k, k)
+        """cols = []
         for i in range(H_out):
             for j in range(W_out):
                 
@@ -113,11 +115,50 @@ class Conv2D:
 
         # (batch, H_out*W_out, C*k*k)
         cols = np.stack(cols, axis=1)
-
+        """
+        cols = np.ascontiguousarray(patches).reshape(batch_size, H_out * W_out, -1)
         return cols
+   
     
     def _col2im(self, cols, X_shape):
+        batch_size, C, H, W = X_shape
+        k = self.kernel_size
+        s = self.stride
 
+        H_out = (H - k) // s + 1
+        W_out = (W - k) // s + 1
+
+        dX = np.zeros(X_shape, dtype=cols.dtype)
+
+        cols_r = cols.reshape(batch_size, H_out, W_out, C, k, k)
+        cols_r = cols_r.transpose(0, 3, 1, 2, 4, 5)
+
+        cache_key = (batch_size, C, H, W, H_out, W_out, k, s)
+
+        if cache_key not in self._col2im_cache:
+            b_idx = np.arange(batch_size)[:, None, None, None, None, None] * C * H * W
+            c_idx = np.arange(C)[None, :, None, None, None, None] * H * W
+
+            h_base = np.arange(H_out)[None, None, :, None, None, None] * s
+            w_base = np.arange(W_out)[None, None, None, :, None, None] * s
+
+            kh = np.arange(k)[None, None, None, None, :, None]
+            kw = np.arange(k)[None, None, None, None, None, :]
+
+            rows = h_base + kh
+            cols_idx = w_base + kw
+
+            flat_idx = b_idx + c_idx + rows * W + cols_idx
+            self._col2im_cache[cache_key] = flat_idx.ravel()
+
+        flat_idx = self._col2im_cache[cache_key]
+
+        np.add.at(dX.ravel(),flat_idx, cols_r.ravel())
+
+        return dX
+    
+    def deprected_col2im(self, cols, X_shape):
+        #moins rapide à cause de la boucle imbriquée
         batch_size, C, H, W = X_shape
 
         k = self.kernel_size
