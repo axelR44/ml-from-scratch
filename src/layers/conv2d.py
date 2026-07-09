@@ -10,13 +10,20 @@ class Conv2D:
         self.stride = stride
 
         self.initialized = False
+        self.rng = None
 
+
+    def set_rng(self, rng):
+            self.rng = rng
 
     def build(self, in_channels):
 
+        if self.rng is None:
+            self.rng = np.random.default_rng()
+
         fan_in = (in_channels* self.kernel_size* self.kernel_size)
 
-        self.W = (np.random.randn(self.out_channels, in_channels, self.kernel_size, self.kernel_size)* np.sqrt(2 / fan_in))
+        self.W = (self.rng.normal(size = (self.out_channels, in_channels, self.kernel_size, self.kernel_size))* np.sqrt(2 / fan_in))
         self.b = np.zeros((self.out_channels, 1))
 
         self.initialized = True

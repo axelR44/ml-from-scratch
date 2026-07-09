@@ -10,7 +10,7 @@ import h5py
 import os
 import h5py
 from src.layers.dropout import Dropout
-
+from src.data.dataloader import DataLoader
 from src.layers.dense import Dense
 from src.layers.conv2d import Conv2D
 from src.layers.activation import ReLU, Sigmoid, LeakyReLU
@@ -41,7 +41,7 @@ def clip_gradients(model, max_norm):
 
 
 class Model:
-    def __init__(self, layers):
+    def __init__(self, layers, seed = 42):
         self.layers = layers
         self.loss_fn = None
         self.train_losses = []
@@ -50,6 +50,21 @@ class Model:
         self.history = None
 
         self.metrics = []
+        self._init_rngs(seed)
+
+    
+    def _init_rngs(self, seed):
+        seed_sequence = np.random.SeedSequence(seed)
+
+        #toutes les layers + le dataloader
+        child_sequences = seed_sequence.spawn(len(self.layers) + 1)
+
+        self.loader_rng = np.random.default_rng(child_sequences[0])
+
+        for layer, child_sequence in zip(self.layers, child_sequences[1:]):
+            if hasattr(layer, "set_rng"):
+                layer.set_rng(np.random.default_rng(child_sequence))
+
 
     def build(self, X):
         self.forward(X[:1])
@@ -133,17 +148,13 @@ class Model:
             for cb in callbacks:
                 cb.on_epoch_begin(self, epoch)
 
-            indices = np.random.permutation(len(X))
-            X = X[indices]
-            y = y[indices]
-            num_batch = 0
             
-            train_metrics_epoch = {}
+            train_loader = DataLoader(X, y, batch_size=batch_size, shuffle=True, drop_last=False, rng=self.loader_rng)
 
-            for i in range(0, len(X), batch_size):
-                X_batch = X[i:i+batch_size]
-                
-                y_batch = y[i:i+batch_size]
+            train_metrics_epoch = {}
+            num_batch = 0
+            for X_batch, y_batch in train_loader:
+
                 y_pred = self.forward(X_batch)
 
                 train_loss = self.loss_fn.forward(y_batch, y_pred)

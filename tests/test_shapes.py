@@ -218,16 +218,12 @@ def test_full_cnn_with_batchnorm2d():
         (2, 64),
         (2, 10),
     ]
-
     out = X
-
     for layer, expected_shape in zip(model.layers, expected_shapes):
-
         if "training" in layer.forward.__code__.co_varnames:
             out = layer.forward(out, training=True)
         else:
             out = layer.forward(out)
-
         check_shape(layer.__class__.__name__, out, expected_shape)
 
 
