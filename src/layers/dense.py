@@ -1,8 +1,9 @@
 import numpy as np
+from src.layers.layer import Layer
 
-class Dense:
+class Dense(Layer):
     def __init__(self, output_size):
-        #initialisation HE
+        super().__init__()
         self.output_size = output_size
         self.initialized = False
         self.rng = None
@@ -24,30 +25,23 @@ class Dense:
         self.X = X  # cache pour backward
         
         if not self.initialized:
-                    self.build(X.shape[1])
+            self.build(X.shape[1])
 
         return X @ self.W + self.b
     
-    def backward(self, dZ, lambda_l2=0.0):
+    def backward(self, dZ):
         
-        batch_size = self.X.shape[0]
-
         self.dW = (self.X.T @ dZ)
         self.db = np.sum(dZ, axis=0, keepdims=True)
-
-        if lambda_l2 > 0:
-            self.dW += lambda_l2 * self.W
 
         return dZ @ self.W.T 
     
     def parameters(self):
-            return [
-                {"param": self.W, "grad": self.dW},
-                {"param": self.b, "grad": self.db}
-            ]
-
-    def count_params(self):
         if not self.initialized:
-            return 0
+            return []
+        return [
+            {"param": self.W, "grad": self.dW},
+            {"param": self.b, "grad": self.db},
+        ]
 
-        return self.W.size + self.b.size
+

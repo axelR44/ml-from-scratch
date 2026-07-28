@@ -1,9 +1,11 @@
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
+from src.layers.layer import Layer
 
 
-class Pool2DBase:
+class Pool2DBase(Layer):
     def __init__(self, pool_size=2, stride=None, padding=0):
+        super().__init__()
         self.pool_size = pool_size
         self.stride = stride if stride is not None else pool_size
         self.padding = padding
@@ -51,8 +53,7 @@ class Pool2DBase:
 
         return dX_padded
     
-    def count_params(self):
-        return 0
+
         
 class AvgPool2D(Pool2DBase):
     def forward(self, X):

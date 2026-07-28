@@ -3,7 +3,7 @@ import numpy as np
 from src.layers.dense import Dense
 from src.layers.conv2d import Conv2D
 from src.layers.flatten import Flatten
-from src.layers.activation import ReLU, Sigmoid
+from src.layers.activation import ReLU, Sigmoid, Softmax
 from src.layers.pooling import MaxPool2D,AvgPool2D, GlobalAveragePooling2D
 from src.layers.batchnorm import BatchNorm
 from src.layers.batchnorm2d import BatchNorm2D
@@ -207,6 +207,7 @@ def run_all_tests_gradient():
     all_errors += check_layer(BatchNorm2D(), np.random.randn(4, 3, 5, 5),"BatchNorm2D", n_checks=20, tolerance=1e-5)
     all_errors += check_layer(GlobalAveragePooling2D(), np.random.randn(2, 3, 5, 5), "GlobalAveragePooling2D", check_input=True, n_checks=20, tolerance=1e-6)
     all_errors += check_layer(AvgPool2D(pool_size=2), np.random.randn(2, 3, 6, 6), "AvgPool2D", check_input=True, n_checks=30, tolerance=1e-6)
+    all_errors += check_layer(Softmax(), np.random.randn(4, 5), "Softmax", check_input=True, n_checks=20, tolerance=1e-6)
     max_error = np.max(all_errors)
 
     print("\nRésumé")

@@ -81,10 +81,10 @@ plot_confusion_matrix(
     show=False
 )
 
-plot_misclassified(X_test, y_test, y_pred, 10, show=False)
+plot_misclassified(X_test, y_test, y_pred, 10,  save_path="analysis/data/confusion_matrix_normalized.png",show=False)
 
-plot_conv_filters(model.layers[0], show=False)
+plot_conv_filters(model.layers[0],  save_path="analysis/data/confusion_matrix_normalized.png",show=False)
 
 feature_maps = model.get_feature_maps(X_test[:1], layer_idx=0)
 
-plot_feature_maps(feature_maps, show=False)
+plot_feature_maps(feature_maps,  save_path="analysis/data/confusion_matrix_normalized.png",show=False)

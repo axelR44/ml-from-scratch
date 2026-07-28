@@ -69,35 +69,20 @@ class Model:
     def build(self, X):
         self.forward(X[:1])
 
-
     def forward(self, X):
         out = X
         for layer in self.layers:
-            if "training" in layer.forward.__code__.co_varnames:
-                out = layer.forward(out, training=self.training)
-            else:
-                out = layer.forward(out)
+            out = layer.forward(out)
         return out
 
-    def backward(self, grad, lambda_l2):
+    def backward(self, grad):
         for layer in reversed(self.layers):
-            if hasattr(layer, "backward"):
-                if hasattr(layer, "W"):  # seulement Dense
-                    grad = layer.backward(grad, lambda_l2=lambda_l2)
-                else:
-                    grad = layer.backward(grad)
-
-    def step(self, lr):
-        for layer in self.layers:
-            if hasattr(layer, "step"):
-                layer.step(lr)
-
+            grad = layer.backward(grad)
         
     def parameters(self):
         params = []
         for layer in self.layers:
-            if hasattr(layer, "parameters"):
-                params.extend(layer.parameters())
+            params.extend(layer.parameters())
         return params
     
 
@@ -161,8 +146,8 @@ class Model:
                 epoch_loss += train_loss
 
                 grad = self.loss_fn.backward()
-                self.backward(grad, lambda_l2 = lambda_l2)
-                optimizer.step(clip_norm=1)
+                self.backward(grad)
+                optimizer.step(clip_norm=1, lambda_l2=lambda_l2)
                 num_batch+=1
                 
                 batch_metrics = self.compute_metrics(y_batch, y_pred)
@@ -211,9 +196,13 @@ class Model:
 
     def train(self):
         self.training = True
+        for layer in self.layers:
+            layer.train()
 
     def eval(self):
         self.training = False
+        for layer in self.layers:
+            layer.eval()
 
     
     def predict(self, X):
@@ -349,6 +338,7 @@ class Model:
         return Model(layers)
     
     def summary(self, input_shape):
+        self.eval()
         X = np.zeros((1, *input_shape))
 
         total_params = 0
@@ -365,14 +355,11 @@ class Model:
 
         for i, layer in enumerate(self.layers):
 
-            if "training" in layer.forward.__code__.co_varnames:
-                out = layer.forward(out, training=False)
-            else:
-                out = layer.forward(out)
+            out = layer.forward(out)
 
-            params = (layer.count_params() if hasattr(layer, "count_params") else 0)
+            params =  layer.count_params()
 
-            total_params += params
+            total_params += layer.count_params()
 
             print(
                 f"{i:<3}"
@@ -385,15 +372,11 @@ class Model:
         print(f"Total params : {total_params:,}")
 
     def get_feature_maps(self, X, layer_idx):
+        self.eval()
         out = X
 
         for i, layer in enumerate(self.layers):
-
-            if hasattr(layer, "forward"):
-                if "training" in layer.forward.__code__.co_varnames:
-                    out = layer.forward(out, training=False)
-                else:
-                    out = layer.forward(out)
+            out = layer.forward(out)
 
             if i == layer_idx:
                 return out

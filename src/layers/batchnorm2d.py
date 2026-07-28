@@ -1,8 +1,10 @@
 import numpy as np
+from src.layers.layer import Layer
 
-class BatchNorm2D:
+class BatchNorm2D(Layer):
 
     def __init__(self, eps=1e-5, momentum=0.9):
+        super().__init__()
         self.eps = eps
         self.momentum = momentum
         
@@ -16,13 +18,13 @@ class BatchNorm2D:
         self.initialized = True
 
     
-    def forward(self, X, training=True):
+    def forward(self, X):
         if not self.initialized:
             self.build(X.shape[1])
 
         self.X = X
 
-        if training:
+        if self.training:
 
             self.mean = np.mean(X,axis=(0,2,3), keepdims=True)
 
@@ -55,9 +57,10 @@ class BatchNorm2D:
 
         return dX
     
-    
-    def count_params(self):
-        if not self.initialized:
-            return 0
-
-        return self.gamma.size + self.beta.size
+    def parameters(self):
+            if not self.initialized:
+                return []
+            return [
+                {"param": self.gamma, "grad": self.dgamma},
+                {"param": self.beta,  "grad": self.dbeta},
+            ]

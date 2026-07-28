@@ -1,15 +1,18 @@
 import numpy as np
+from src.layers.layer import Layer
 
-class Dropout:
+class Dropout(Layer):
     def __init__(self, p=0.5):
+        super().__init__()
+
         self.p = p
         self.rng = None
 
     def set_rng(self, rng):
             self.rng = rng
 
-    def forward(self, X, training=True):
-        if not training:
+    def forward(self, X):
+        if not self.training:
             return X
         
         if self.rng is None:
@@ -21,6 +24,3 @@ class Dropout:
 
     def backward(self, dA):
         return dA * self.mask
-    
-    def count_params(self):
-        return 0

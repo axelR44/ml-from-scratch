@@ -7,81 +7,41 @@ class Adam:
         self.beta1 = beta1
         self.beta2 = beta2
         self.eps = eps
+        self.t = 0
+        self.m = None      # init différée : les couches sont lazy
+        self.v = None
 
-        self.t = 0  # timestep
+    def step(self, clip_norm=None, lambda_l2=0.0):
+        params = self.model.parameters()
 
-        # stocker m et v pour chaque paramètre
-        self.m = []
-        self.v = []
-        self.biggest_norm = 0
-
-        # init
-        for layer in self.model.layers:
-            if hasattr(layer, "W"):
-                self.m.append(np.zeros_like(layer.W))
-                self.v.append(np.zeros_like(layer.W))
-
-                self.m.append(np.zeros_like(layer.b))
-                self.v.append(np.zeros_like(layer.b))
-
-    def step(self, clip_norm = None):
-        self.t += 1
-        idx = 0
+        # init paresseuse : au premier step, les params existent enfin
+        if self.m is None:
+            self.m = [np.zeros_like(p["param"]) for p in params]
+            self.v = [np.zeros_like(p["param"]) for p in params]
 
         if clip_norm is not None:
-            self.clip(clip_norm)
+            self.clip(params, clip_norm)
 
-        for layer in self.model.layers:
-            if hasattr(layer, "W"):
+        self.t += 1
 
-                # ===== W =====
-                g = layer.dW
+        for i, p in enumerate(params):
+            grad = p["grad"]
+            if lambda_l2 > 0:
+                grad = grad + lambda_l2 * p["param"]
 
-                self.m[idx] = self.beta1 * self.m[idx] + (1 - self.beta1) * g
-                self.v[idx] = self.beta2 * self.v[idx] + (1 - self.beta2) * (g ** 2)
+            self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * grad
+            self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * (grad ** 2)
 
-                # bias correction
-                m_hat = self.m[idx] / (1 - self.beta1 ** self.t)
-                v_hat = self.v[idx] / (1 - self.beta2 ** self.t)
+            m_hat = self.m[i] / (1 - self.beta1 ** self.t)
+            v_hat = self.v[i] / (1 - self.beta2 ** self.t)
 
-                layer.W -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
+            p["param"] -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
 
-                idx += 1
-
-                # ===== b =====
-                g = layer.db
-
-                self.m[idx] = self.beta1 * self.m[idx] + (1 - self.beta1) * g
-                self.v[idx] = self.beta2 * self.v[idx] + (1 - self.beta2) * (g ** 2)
-
-                m_hat = self.m[idx] / (1 - self.beta1 ** self.t)
-                v_hat = self.v[idx] / (1 - self.beta2 ** self.t)
-
-                layer.b -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
-
-                idx += 1
-
-            if hasattr(layer, "gamma"):
-                layer.gamma -= self.lr * layer.dgamma
-                layer.beta -= self.lr * layer.dbeta
-
-
-    def clip(self, max_norm):
-
-        total_norm = 0
-
-        for layer in self.model.layers:
-            if hasattr(layer, "dW"):
-                total_norm += np.sum(layer.dW ** 2)
-                total_norm += np.sum(layer.db ** 2)
-
-        total_norm = np.sqrt(total_norm)
-        if total_norm>= self.biggest_norm:
+    def clip(self, params, max_norm):
+        total_norm = np.sqrt(sum(np.sum(p["grad"] ** 2) for p in params))
+        if total_norm >= self.biggest_norm:
             self.biggest_norm = total_norm
         if total_norm > max_norm:
             scale = max_norm / (total_norm + 1e-6)
-
-            for layer in self.model.layers:
-                if hasattr(layer, "dW"):
-                    layer.dW *= scale
-                    layer.db *= scale
+            for p in params:
+                p["grad"] *= scale

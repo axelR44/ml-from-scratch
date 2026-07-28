@@ -18,6 +18,8 @@ X_test = X_test.reshape(-1, 1, 28, 28)
 y_pred = model.predict(X_train)
 preds = np.argmax(y_pred, axis=1)
 
+
+
 print(np.bincount(preds))
 print(model.evaluate(X_test, y_test, CrossEntropy()))
 wrong = np.where(preds != y_train)[0]

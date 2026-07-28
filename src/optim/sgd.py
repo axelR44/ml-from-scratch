@@ -5,39 +5,27 @@ class SGD:
         self.model = model
         self.lr = lr
 
-    def step(self,  clip_norm = None):
+    def step(self,  clip_norm = None, lambda_l2=0.0):
+        params = self.model.parameters()
+
         if clip_norm is not None:
-            self.clip(clip_norm)
-        
-        for layer in self.model.layers:
-            if hasattr(layer, "W") and hasattr(layer, "dW"):
-                layer.W -= self.lr * layer.dW
+            self.clip(params, clip_norm)
 
-            if hasattr(layer, "b") and hasattr(layer, "db"):
-                layer.b -= self.lr * layer.db
-
+        for p in params:
+            grad = p["grad"]
+            if lambda_l2 > 0:
+                grad = grad + lambda_l2 * p["param"]
+            p["param"] -= self.lr * grad
 
     def zero_grad(self):
         for p in self.parameters:
             p["grad"] = 0
 
-    def clip(self, max_norm):
+    def clip(self, params, max_norm):
+            total_norm = np.sqrt(sum(np.sum(p["grad"] ** 2) for p in params))
+            if total_norm > max_norm:
+                scale = max_norm / (total_norm + 1e-6)
+                for p in params:
+                    p["grad"] *= scale
 
-        total_norm = 0
-
-        for layer in self.model.layers:
-            if hasattr(layer, "dW"):
-                total_norm += np.sum(layer.dW ** 2)
-                total_norm += np.sum(layer.db ** 2)
-
-        total_norm = np.sqrt(total_norm)
-        if total_norm > max_norm:
-            scale = max_norm / (total_norm + 1e-6)
-
-            for layer in self.model.layers:
-                if hasattr(layer, "dW"):
-                    layer.dW *= scale
-                    layer.db *= scale
-                if hasattr(layer, "gamma"):
-                    layer.gamma -= self.lr * layer.dgamma
-                    layer.beta -= self.lr * layer.dbeta
+                    

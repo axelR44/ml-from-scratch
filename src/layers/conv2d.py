@@ -1,8 +1,10 @@
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
+from src.layers.layer import Layer
 
-class Conv2D:
+class Conv2D(Layer):
     def __init__(self, out_channels, kernel_size, padding = 0, stride = 1):
+        super().__init__()
         self.out_channels = out_channels
         self.kernel_size = kernel_size
 
@@ -10,15 +12,18 @@ class Conv2D:
         self.padding = padding
         self.stride = stride
 
-        self.initialized = False
         self.rng = None
         self._col2im_cache = {}
+
+        self.initialized = False
 
 
     def set_rng(self, rng):
             self.rng = rng
 
     def build(self, in_channels):
+        self.dW = np.zeros_like(self.W)
+        self.db = np.zeros_like(self.b)
 
         if self.rng is None:
             self.rng = np.random.default_rng()
@@ -218,7 +223,7 @@ class Conv2D:
         return dX
     
 
-    def backward(self, dZ, lambda_l2=0.0):
+    def backward(self, dZ):
         #on reprend la shape du X qui avait été paddé
         batch_size, C, H, W = self.X_padded.shape
         k = self.kernel_size
@@ -247,20 +252,13 @@ class Conv2D:
         dCols = np.matmul(dZ_col, W_col)
         dX = self._col2im(dCols, self.X_padded.shape)
         if self.padding > 0:
-            dX = dX[
-                :,
-                :,
-                self.padding:-self.padding,
-                self.padding:-self.padding
-            ]
-
-        if lambda_l2 > 0:
-            self.dW += lambda_l2 * self.W
-
+            dX = dX[:,:, self.padding:-self.padding, self.padding:-self.padding]
         return dX
-    
-    def count_params(self):
-        if not self.initialized:
-            return 0
 
-        return self.W.size + self.b.size
+    def parameters(self):
+        if not self.initialized:
+            return []
+        return [
+            {"param": self.W, "grad": self.dW},
+            {"param": self.b, "grad": self.db},
+        ]

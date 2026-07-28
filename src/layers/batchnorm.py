@@ -1,10 +1,11 @@
 import numpy as np
+from src.layers.layer import Layer
 
-class BatchNorm:
+class BatchNorm(Layer):
     def __init__(self, eps=1e-5, momentum=0.9):
+        super().__init__()
         self.eps = eps
         self.momentum = momentum
-
         self.initialized = False
 
     def build(self, in_features):
@@ -16,12 +17,12 @@ class BatchNorm:
 
         self.initialized = True
 
-    def forward(self, X, training=True):
+    def forward(self, X):
         if not self.initialized:
             self.build(X.shape[1])
         self.X = X
 
-        if training:
+        if self.training:
             self.mean = np.mean(X, axis=0, keepdims=True)
             self.var = np.var(X, axis=0, keepdims=True)
 
@@ -52,8 +53,10 @@ class BatchNorm:
 
         return dX
     
-    def count_params(self):
+    def parameters(self):
         if not self.initialized:
-            return 0
-
-        return self.gamma.size + self.beta.size
+            return []
+        return [
+            {"param": self.gamma, "grad": self.dgamma},
+            {"param": self.beta,  "grad": self.dbeta},
+        ]
