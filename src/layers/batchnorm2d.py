@@ -13,6 +13,8 @@ class BatchNorm2D(Layer):
     def build(self, in_channel):
         self.gamma = np.ones((1, in_channel, 1, 1))
         self.beta = np.zeros((1, in_channel, 1, 1))
+        self.dgamma = np.zeros_like(self.gamma)
+        self.dbeta = np.zeros_like(self.beta)
         self.running_mean = np.zeros((1, in_channel, 1, 1))
         self.running_var = np.ones((1, in_channel, 1, 1))
         self.initialized = True

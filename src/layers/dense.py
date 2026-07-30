@@ -18,7 +18,8 @@ class Dense(Layer):
 
         self.W = (self.rng.normal(size = (input_size, self.output_size)) * np.sqrt(2 / input_size))
         self.b = np.zeros((1, self.output_size))
-
+        self.dW = np.zeros_like(self.W)
+        self.db = np.zeros_like(self.b)
         self.initialized = True
 
     def forward(self, X):

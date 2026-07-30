@@ -57,6 +57,7 @@ class Pool2DBase(Layer):
         
 class AvgPool2D(Pool2DBase):
     def forward(self, X):
+        
         self.X_shape = X.shape
         self.X_padded = self._pad_input(X, mode="avg")
         self.patches = self._extract_patches(self.X_padded)
@@ -93,7 +94,7 @@ class MaxPool2D(Pool2DBase):
         return dX
     
 
-class GlobalAveragePooling2D:
+class GlobalAveragePooling2D(Layer):
     def forward(self, X):
         self.input_shape = X.shape
         return np.mean(X, axis=(2, 3))

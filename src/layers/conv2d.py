@@ -22,8 +22,7 @@ class Conv2D(Layer):
             self.rng = rng
 
     def build(self, in_channels):
-        self.dW = np.zeros_like(self.W)
-        self.db = np.zeros_like(self.b)
+        
 
         if self.rng is None:
             self.rng = np.random.default_rng()
@@ -32,7 +31,8 @@ class Conv2D(Layer):
 
         self.W = (self.rng.normal(size = (self.out_channels, in_channels, self.kernel_size, self.kernel_size))* np.sqrt(2 / fan_in)).astype(np.float32)
         self.b = np.zeros((self.out_channels, 1)).astype(np.float32)
-
+        self.dW = np.zeros_like(self.W)
+        self.db = np.zeros_like(self.b)
         self.initialized = True
 
     def naive_forward(self, X):

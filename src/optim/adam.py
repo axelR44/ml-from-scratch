@@ -6,6 +6,8 @@ class Adam:
         self.lr = lr
         self.beta1 = beta1
         self.beta2 = beta2
+
+        self.biggest_norm = np.inf
         self.eps = eps
         self.t = 0
         self.m = None      # init différée : les couches sont lazy

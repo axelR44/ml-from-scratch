@@ -35,7 +35,7 @@ model.compile(
     metrics=[accuracy]
 )
 model.fit(X_train,y_train, X_test, y_test, lr=0.001,
-        epochs=5,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
+        epochs=1,optimizer_name="Adam", scheduler_name="WCOS", save_path='model_mnsi',
         callbacks=[EarlyStopping(patience=20),
                     ModelCheckpoint("best_model"),
                     ReduceLROnPlateau(factor=0.5,patience=10),
