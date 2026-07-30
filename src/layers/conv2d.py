@@ -189,7 +189,7 @@ class Conv2D(Layer):
                 patch_idx += 1
         return dX
         
-    def naive_backward(self, dZ, lambda_l2=0.0):
+    def naive_backward(self, dY, lambda_l2=0.0):
         """
         Deprecated.
         use backward() instead.
@@ -211,7 +211,7 @@ class Conv2D(Layer):
                 for i in range(H_out):
                     for j in range(W_out):
                         region = self.X[n, :, i:i+k, j:j+k]
-                        grad = dZ[n, oc, i, j]
+                        grad = dY[n, oc, i, j]
                         self.dW[oc] += grad * region
                         self.db[oc] += grad
                         
@@ -223,7 +223,7 @@ class Conv2D(Layer):
         return dX
     
 
-    def backward(self, dZ):
+    def backward(self, dY):
         #on reprend la shape du X qui avait été paddé
         batch_size, C, H, W = self.X_padded.shape
         k = self.kernel_size
@@ -234,13 +234,13 @@ class Conv2D(Layer):
 
         nb_patches = H_out * W_out
 
-        self.db = np.sum(dZ, axis=(0, 2, 3), keepdims=False).reshape(self.out_channels, 1)
+        self.db = np.sum(dY, axis=(0, 2, 3), keepdims=False).reshape(self.out_channels, 1)
 
-        dZ_col = dZ.transpose(0, 2, 3, 1)
-        dZ_col = dZ_col.reshape(batch_size, H_out * W_out, self.out_channels)
+        dY_col = dY.transpose(0, 2, 3, 1)
+        dY_col = dY_col.reshape(batch_size, H_out * W_out, self.out_channels)
         _, _, kernel_dim = self.cols.shape
 
-        grad_output = dZ_col.reshape(batch_size * nb_patches, self.out_channels)
+        grad_output = dY_col.reshape(batch_size * nb_patches, self.out_channels)
 
         patches = self.cols.reshape(batch_size * nb_patches, kernel_dim)
 
@@ -249,7 +249,7 @@ class Conv2D(Layer):
         self.dW = dW_col.reshape(self.W.shape)
         W_col = self.W.reshape(self.out_channels,-1)
 
-        dCols = np.matmul(dZ_col, W_col)
+        dCols = np.matmul(dY_col, W_col)
         dX = self._col2im(dCols, self.X_padded.shape)
         if self.padding > 0:
             dX = dX[:,:, self.padding:-self.padding, self.padding:-self.padding]
